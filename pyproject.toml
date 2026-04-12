@@ -17,6 +17,7 @@ dependencies = [
   "matplotlib>=3.8",
   "typer>=0.12",
   "tensorboard>=2.16",
+  "einops>=0.8",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,51 @@
+task: qwen3_reasoning
+dataset_path: artifacts/qwen3_32b_train_token_similarity.h5
+output_dir: artifacts/lewm_qwen3_token_similarity
+device: auto
+seed: 7
+val_fraction: 0.05
+
+loader:
+  batch_size: 128
+  num_workers: 4
+  persistent_workers: true
+  prefetch_factor: 2
+  pin_memory: true
+
+trainer:
+  max_epochs: 20
+  gradient_clip_val: 1.0
+
+optimizer:
+  lr: 5.0e-5
+  weight_decay: 1.0e-3
+
+wm:
+  history_size: 1
+  num_preds: 1
+  embed_dim: 192
+  hidden_dim: 192
+  projector_hidden_dim: 512
+
+predictor:
+  depth: 4
+  heads: 6
+  mlp_dim: 768
+  dim_head: 32
+  dropout: 0.1
+  emb_dropout: 0.0
+
+loss:
+  sigreg:
+    weight: 0.09
+    kwargs:
+      knots: 17
+      num_proj: 512
+
+probe_every_n_epochs: 5
+probe_max_examples: 1000
+check_epoch: 5
+stop_if_improvement_below: 1.2
+continue_if_improvement_above: 1.5
+voe_max_examples: 1024
+voe_batch_size: 128

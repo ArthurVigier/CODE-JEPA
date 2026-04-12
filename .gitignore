@@ -33,6 +33,7 @@ artifacts/
 
 # Logs and local run outputs
 *.log
+train_summary*.json
 /runs/
 wandb/
 tensorboard/
