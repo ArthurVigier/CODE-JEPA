@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "activation-as-view"
 version = "0.1.0"
-description = "Activation-as-View research monorepo for LeWM x Qwen3-72B"
+description = "Activation-as-View research monorepo for LeWM x Qwen3"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
