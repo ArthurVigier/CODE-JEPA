@@ -30,6 +30,7 @@ artifacts/
 *.npz
 *.npy
 *.parquet
+*.tar.gz
 
 # Logs and local run outputs
 *.log
@@ -37,6 +38,7 @@ train_summary*.json
 /runs/
 wandb/
 tensorboard/
+lewm_qwen3_token_similarity*/
 
 # OS/editor
 .DS_Store

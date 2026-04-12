@@ -15,6 +15,7 @@ if str(LEWM_ROOT) not in sys.path:
 from module import SIGReg
 from qwen3_dataset import Qwen3ReasoningSequenceDataset, collate_qwen3_sequences
 from train_qwen3_reasoning import build_lewm_model, evaluate_lewm, lewm_forward
+from eval_qwen3_voe import _category_permutation
 
 
 def _write_triplets(path: Path, n: int = 8) -> None:
@@ -70,3 +71,14 @@ def test_lewm_forward_and_eval_on_qwen_batch(tmp_path: Path) -> None:
     metrics = evaluate_lewm(model, sigreg, loader, torch.device("cpu"), cfg)
     assert set(metrics) == {"latent_model_mse", "latent_identity_mse", "latent_improvement_ratio", "image_identity_mse"}
     assert metrics["latent_model_mse"] >= 0.0
+
+
+def test_category_permutation_respects_domain_constraints() -> None:
+    rng = np.random.default_rng(7)
+    categories = ["code", "code", "math", "math", "sql", "sql"]
+    same = _category_permutation(categories, same_domain=True, rng=rng)
+    assert all(categories[i] == categories[j] and i != j for i, j in enumerate(same))
+
+    rng = np.random.default_rng(7)
+    different = _category_permutation(categories, same_domain=False, rng=rng)
+    assert all(categories[i] != categories[j] for i, j in enumerate(different))
