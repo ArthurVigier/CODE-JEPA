@@ -4,26 +4,45 @@ Research monorepo for the "Activation-as-View: LeWM x Qwen3" roadmap.
 
 The current experimental teacher is `Qwen/Qwen3-32B`. The strongest Phase 0 representation so far is `token_similarity_v1`, which encodes token-token relational fields from selected transformer layers as image-like observations.
 
-## Current Artifacts
+## Results So Far
+
+Current status: Phase 0 and the first real LeWM training pass are positive on `Qwen/Qwen3-32B` with `token_similarity_v1`. The result is not yet a SWE-bench or GLM generalization claim; it is a strong falsification pass showing that the activation-view dataset is learnable by the vendored LeWM pipeline and produces a large VoE signal.
+
+Published Hugging Face artifacts:
+
+- Dataset: [`Artvv/qwen3-32b-token-similarity-activation-triplets`](https://huggingface.co/datasets/Artvv/qwen3-32b-token-similarity-activation-triplets)
+- LeWM model: [`Artvv/lewm-qwen3-32b-token-similarity`](https://huggingface.co/Artvv/lewm-qwen3-32b-token-similarity)
+
+Main run:
+
+- Teacher: `Qwen/Qwen3-32B`
+- Encoding: `token_similarity_v1`
+- Layers: `[10, 20, 30]`
+- Dataset: `50K` triplets, observations `[3, 64, 64]`, actions `[256]`
+- Real LeWM checkpoint: `artifacts/lewm_qwen3_token_similarity/latest.pt`, mirrored on Hugging Face as `checkpoints/latest.pt`
+
+Phase 0 visual/probe result:
+
+- Probe AUC: `~0.996-1.000` across successful 500-prompt runs
+- Best working representation so far: `token_similarity_v1`
+- Earlier thermal/flow attempts were useful ablations but visually less reliable than token similarity.
+
+Real LeWM 50K result:
+
+- Epoch 20 latent improvement ratio: `6.125`
+- Probe AUC after LeWM encoding: `0.9994`
+- Calibrated VoE ratio, temporal coherent vs inter-domain incoherent: `71.43x`
+- Calibrated VoE ratio, temporal coherent vs intra-domain non-transition: `59.90x`
+- Interpretation: the model learned strong local trajectory compatibility. The intra-domain non-transition score is also high, so the current result is evidence for temporal activation dynamics, not yet evidence for broad semantic invariance.
+
+## Artifact Names
 
 There are two different training paths in this repo. They are intentionally named differently:
 
 - `artifacts/world_model_qwen32_token_similarity/` is the early proxy world-model baseline. It is useful only as a sanity check and is not the main LeWM result.
 - `artifacts/lewm_qwen3_token_similarity/` is the real vendored LeWM training run on the 50K Qwen3-32B activation triplets.
 
-The published Hugging Face artifacts follow the same separation:
-
-- Dataset: [`Artvv/qwen3-32b-token-similarity-activation-triplets`](https://huggingface.co/datasets/Artvv/qwen3-32b-token-similarity-activation-triplets)
-- LeWM model: [`Artvv/lewm-qwen3-32b-token-similarity`](https://huggingface.co/Artvv/lewm-qwen3-32b-token-similarity)
-
 Do not treat root-level `latest.pt` files as canonical. The canonical trained LeWM checkpoint is `artifacts/lewm_qwen3_token_similarity/latest.pt`, mirrored on Hugging Face as `checkpoints/latest.pt`.
-
-Latest real LeWM 50K result:
-
-- Epoch 20 latent improvement ratio: `6.125`
-- Probe AUC: `0.9994`
-- Calibrated VoE ratio, temporal coherent vs inter-domain incoherent: `71.43x`
-- Calibrated VoE ratio, temporal coherent vs intra-domain non-transition: `59.90x`
 
 ## Layout
 
