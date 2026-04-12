@@ -1,0 +1,8 @@
+output_dir: artifacts/phase0_qwen32_flow
+model_name: Qwen/Qwen3-32B
+layers: [10, 20, 30]
+encoding: flow_svd_v1
+profile: full
+hf_token_env: HF_TOKEN
+train_resolution: 64
+viz_resolution: 128

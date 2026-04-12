@@ -1,0 +1,4 @@
+output_dir: artifacts/phase0_debug
+layers: [10, 20, 30]
+encoding: residual_svd64_v1
+profile: debug

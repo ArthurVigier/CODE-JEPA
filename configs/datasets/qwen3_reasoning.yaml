@@ -1,0 +1,5 @@
+dataset_name: qwen3_reasoning
+output_path: artifacts/qwen3_reasoning_triplets.h5
+obs_shape: [3, 64, 64]
+action_dim: 256
+required_keys: [obs, actions, next_obs, categories, source_ids, prompt_ids, step_ids]

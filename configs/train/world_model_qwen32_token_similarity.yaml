@@ -1,0 +1,14 @@
+dataset_path: artifacts/qwen3_32b_train_token_similarity.h5
+output_dir: artifacts/world_model_qwen32_token_similarity
+device: auto
+seed: 7
+val_fraction: 0.05
+batch_size: 128
+num_workers: 0
+hidden_dim: 256
+lr: 1.0e-4
+weight_decay: 1.0e-4
+max_epochs: 20
+check_epoch: 5
+stop_if_improvement_below: 1.2
+continue_if_improvement_above: 1.5

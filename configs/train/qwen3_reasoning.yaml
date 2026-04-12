@@ -1,0 +1,16 @@
+task: qwen3_reasoning
+obs_shape: [3, 64, 64]
+action_dim: 256
+dataset_path: artifacts/qwen3_reasoning_triplets.h5
+optimizer:
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+sigreg:
+  lambda: 0.1
+scheduler: cosine
+epochs: 50
+batch_size: 256
+logging:
+  backend: tensorboard
+  tensorboard_dir: artifacts/tensorboard/qwen3_reasoning
+  summary_path: artifacts/lewm_train_summary.json

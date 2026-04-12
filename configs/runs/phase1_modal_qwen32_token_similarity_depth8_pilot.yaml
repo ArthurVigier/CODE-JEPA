@@ -1,0 +1,11 @@
+output_path: artifacts/qwen3_32b_pilot_token_similarity_depth8.h5
+checkpoint_path: artifacts/checkpoints/qwen3_32b_pilot_token_similarity_depth8.json
+model_name: Qwen/Qwen3-32B
+layers: [4, 8, 12, 16, 20, 24, 28, 32]
+encoding: token_similarity_depth_v1
+profile: pilot
+prompt_limit: 10
+max_new_tokens: 2
+torch_dtype: bfloat16
+hf_token_env: HF_TOKEN
+action_pca_sample_size: 4096

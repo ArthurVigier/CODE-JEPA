@@ -1,0 +1,16 @@
+variants:
+  - hsv_pca3
+  - residual_svd64_v1
+  - thermal_svd64_v1
+  - thermal_dynamics_v1
+  - token_similarity_v1
+  - token_similarity_depth_v1
+  - flow_svd_v1
+  - flow_particles_v1
+  - lab_pca3
+  - cosine_matrix
+  - jab8
+metrics:
+  - probe_auc
+  - voe_ratio
+shared_validation_split: pilot
