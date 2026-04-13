@@ -86,6 +86,7 @@ python third_party/le-wm/eval_qwen3_voe.py --config third_party/le-wm/config/tra
 python evals/generate_swebench_candidates.py --dataset-name princeton-nlp/SWE-bench_Verified --split test --model Qwen/Qwen3-32B --num-candidates 8 --output artifacts/swebench/qwen_candidates_n8.jsonl
 python evals/swebench_rerank.py --candidates artifacts/swebench/qwen_candidates_n8.jsonl --checkpoint artifacts/lewm_qwen3_token_similarity/latest.pt --config third_party/le-wm/config/train/qwen3_reasoning.yaml --output artifacts/evals/swebench_reranked_predictions.jsonl
 python -m swebench.harness.run_evaluation --dataset_name princeton-nlp/SWE-bench_Verified --split test --predictions_path artifacts/evals/swebench_reranked_predictions.jsonl --max_workers 8 --run_id code_jepa_lewm_qwen32_rerank
+python evals/cross_arch_glm.py --model zai-org/GLM-5.1-FP8 --checkpoint artifacts/lewm_qwen3_token_similarity/latest.pt --config third_party/le-wm/config/train/qwen3_reasoning.yaml --layers 16,39,58 --n-per-category 100 --output artifacts/evals/cross_arch_glm_5_1_fp8.json --embeddings-output artifacts/evals/cross_arch_glm_5_1_fp8_embeddings.npz
 python evals/compile_results.py --runs-dir artifacts --output paper/results_manifest.json
 # then inspect local training logs with:
 # tensorboard --logdir artifacts/tensorboard
