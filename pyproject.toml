@@ -22,6 +22,7 @@ dependencies = [
 
 [project.optional-dependencies]
 torch = ["torch>=2.2", "transformers>=4.45", "accelerate>=0.33"]
+eval = ["datasets>=4.0", "swebench>=4.0", "together>=1.5", "vllm>=0.10"]
 dev = ["pytest>=8.2"]
 
 [tool.setuptools]
