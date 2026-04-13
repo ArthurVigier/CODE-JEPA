@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from evals.generate_swebench_candidates import _build_prompt, _candidate_record, _candidate_seed, _completed_counts, _extract_patch
+from evals.generate_swebench_candidates_vllm import _pending_requests
 
 
 def test_extract_patch_prefers_diff_inside_fence() -> None:
@@ -29,6 +30,23 @@ def test_completed_counts_supports_resume(tmp_path: Path) -> None:
         handle.write(json.dumps({"instance_id": "a", "candidate_id": "1"}) + "\n")
         handle.write(json.dumps({"instance_id": "b", "candidate_id": "0"}) + "\n")
     assert _completed_counts(path) == {"a": 2, "b": 1}
+
+
+def test_vllm_pending_requests_resume_by_candidate() -> None:
+    rows = [{"instance_id": "a"}, {"instance_id": "b"}]
+    pending = _pending_requests(rows, {"a": 6}, num_candidates=8)
+    assert [(instance_id, candidate_id) for _row, instance_id, candidate_id in pending] == [
+        ("a", 6),
+        ("a", 7),
+        ("b", 0),
+        ("b", 1),
+        ("b", 2),
+        ("b", 3),
+        ("b", 4),
+        ("b", 5),
+        ("b", 6),
+        ("b", 7),
+    ]
 
 
 def test_candidate_record_tracks_batch_size_and_stable_seed() -> None:
