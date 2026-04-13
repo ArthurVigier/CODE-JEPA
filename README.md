@@ -83,6 +83,8 @@ PYTHONPATH=src python scripts/dynamics_baselines.py artifacts/qwen3_32b_train_to
 PYTHONPATH=src python scripts/train_world_model.py --config configs/train/world_model_qwen32_token_similarity.yaml
 python third_party/le-wm/train_qwen3_reasoning.py --config third_party/le-wm/config/train/qwen3_reasoning.yaml
 python third_party/le-wm/eval_qwen3_voe.py --config third_party/le-wm/config/train/qwen3_reasoning.yaml --checkpoint artifacts/lewm_qwen3_token_similarity/latest.pt --output artifacts/lewm_qwen3_token_similarity/voe.json
+python evals/swebench_rerank.py --candidates artifacts/swebench/qwen_candidates_n8.jsonl --checkpoint artifacts/lewm_qwen3_token_similarity/latest.pt --config third_party/le-wm/config/train/qwen3_reasoning.yaml --output artifacts/evals/swebench_reranked_predictions.jsonl
+python -m swebench.harness.run_evaluation --dataset_name princeton-nlp/SWE-bench_Verified --split test --predictions_path artifacts/evals/swebench_reranked_predictions.jsonl --max_workers 8 --run_id code_jepa_lewm_qwen32_rerank
 python evals/compile_results.py --runs-dir artifacts --output paper/results_manifest.json
 # then inspect local training logs with:
 # tensorboard --logdir artifacts/tensorboard
