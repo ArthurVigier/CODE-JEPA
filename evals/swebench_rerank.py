@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,6 +48,15 @@ def _write_jsonl(path: str | Path, records: list[dict[str, Any]]) -> None:
     with out.open("w") as handle:
         for record in records:
             handle.write(json.dumps(record) + "\n")
+
+
+def _append_jsonl(path: str | Path, records: list[dict[str, Any]]) -> None:
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("a") as handle:
+        for record in records:
+            handle.write(json.dumps(record) + "\n")
+        handle.flush()
 
 
 def _candidate_patch(record: dict[str, Any]) -> str:
@@ -199,6 +209,41 @@ def _cosine(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return np.sum(a * b, axis=1)
 
 
+def _load_processed_predictions(path: Path) -> tuple[list[dict[str, Any]], set[str]]:
+    if not path.exists():
+        return [], set()
+    rows = _read_jsonl(path)
+    processed = {str(row["instance_id"]) for row in rows if row.get("instance_id")}
+    return rows, processed
+
+
+def _write_progress(
+    path: Path,
+    *,
+    processed: int,
+    total: int,
+    instance_id: str | None,
+    started_at: float,
+    status: str,
+) -> None:
+    elapsed = time.time() - started_at
+    remaining = total - processed
+    rate = processed / elapsed if elapsed > 0 else 0.0
+    progress = {
+        "status": status,
+        "processed_instances": processed,
+        "total_instances": total,
+        "remaining_instances": remaining,
+        "last_instance_id": instance_id,
+        "elapsed_seconds": elapsed,
+        "instances_per_hour": rate * 3600.0,
+        "eta_seconds": remaining / rate if rate > 0 and remaining > 0 else None,
+        "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(progress, indent=2))
+
+
 def rerank_swebench(cfg: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     candidates_path = Path(args.candidates)
     if not candidates_path.exists():
@@ -242,10 +287,37 @@ def rerank_swebench(cfg: dict[str, Any], args: argparse.Namespace) -> dict[str, 
     lewm = _load_lewm(checkpoint_path, cfg, device)
     extractor = TransformerActivationExtractor(model_name=model_name, layer_ids=layers)
 
-    predictions = []
-    score_rows = []
+    output_path = Path(args.output)
+    score_path = Path(args.scores_output or str(output_path.with_suffix(".scores.jsonl")))
+    summary_path = Path(args.summary_output or str(output_path.with_suffix(".summary.json")))
+    progress_path = Path(args.progress_output or str(output_path.with_suffix(".progress.json")))
+
+    if args.resume:
+        predictions, processed_instances = _load_processed_predictions(output_path)
+        score_rows = _read_jsonl(score_path) if score_path.exists() else []
+    else:
+        predictions = []
+        score_rows = []
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        score_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text("")
+        score_path.write_text("")
+        processed_instances = set()
+
+    started_at = time.time()
+    total_instances = len(by_instance)
+    _write_progress(
+        progress_path,
+        processed=len(processed_instances),
+        total=total_instances,
+        instance_id=None,
+        started_at=started_at,
+        status="running",
+    )
     try:
         for instance_id, group in by_instance.items():
+            if instance_id in processed_instances:
+                continue
             problem = problems[instance_id]
             problem_snapshot = extractor.extract_snapshot(
                 prompt_id=f"{instance_id}:problem",
@@ -275,15 +347,15 @@ def rerank_swebench(cfg: dict[str, Any], args: argparse.Namespace) -> dict[str, 
             scores = _cosine(np.repeat(problem_emb, candidate_emb.shape[0], axis=0), candidate_emb)
             best_idx = int(np.argmax(scores))
             best = group[best_idx]
-            predictions.append(
-                {
-                    "instance_id": instance_id,
-                    "model_patch": best.model_patch,
-                    "model_name_or_path": args.model_name_or_path,
-                }
-            )
+            prediction = {
+                "instance_id": instance_id,
+                "model_patch": best.model_patch,
+                "model_name_or_path": args.model_name_or_path,
+            }
+            predictions.append(prediction)
+            instance_score_rows = []
             for idx, (record, score) in enumerate(zip(group, scores)):
-                score_rows.append(
+                instance_score_rows.append(
                     {
                         "instance_id": instance_id,
                         "candidate_id": record.candidate_id,
@@ -291,16 +363,25 @@ def rerank_swebench(cfg: dict[str, Any], args: argparse.Namespace) -> dict[str, 
                         "selected": idx == best_idx,
                     }
                 )
+            score_rows.extend(instance_score_rows)
+            processed_instances.add(instance_id)
+            _append_jsonl(output_path, [prediction])
+            _append_jsonl(score_path, instance_score_rows)
+            _write_progress(
+                progress_path,
+                processed=len(processed_instances),
+                total=total_instances,
+                instance_id=instance_id,
+                started_at=started_at,
+                status="running",
+            )
     finally:
         extractor.close()
 
-    _write_jsonl(args.output, predictions)
-    score_path = Path(args.scores_output or str(Path(args.output).with_suffix(".scores.jsonl")))
-    _write_jsonl(score_path, score_rows)
     summary = {
         "status": "complete",
         "candidates_path": str(candidates_path),
-        "output": str(args.output),
+        "output": str(output_path),
         "scores_output": str(score_path),
         "n_instances": len(predictions),
         "n_candidates": n_candidates,
@@ -314,9 +395,16 @@ def rerank_swebench(cfg: dict[str, Any], args: argparse.Namespace) -> dict[str, 
         "swebench_dataset_name": args.swebench_dataset_name,
         "swebench_split": args.swebench_split,
     }
-    summary_path = Path(args.summary_output or str(Path(args.output).with_suffix(".summary.json")))
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(summary, indent=2))
+    _write_progress(
+        progress_path,
+        processed=len(processed_instances),
+        total=total_instances,
+        instance_id=None,
+        started_at=started_at,
+        status="complete",
+    )
     print(json.dumps(summary, indent=2))
     return summary
 
@@ -329,11 +417,13 @@ def main() -> None:
     parser.add_argument("--output", required=True)
     parser.add_argument("--scores-output")
     parser.add_argument("--summary-output")
+    parser.add_argument("--progress-output")
     parser.add_argument("--teacher-model")
     parser.add_argument("--swebench-dataset-name", default="princeton-nlp/SWE-bench_Verified")
     parser.add_argument("--swebench-split", default="test")
     parser.add_argument("--min-candidates", type=int, default=2)
     parser.add_argument("--validate-only", action="store_true")
+    parser.add_argument("--resume", action="store_true", help="Skip instance_ids already present in --output and append new results.")
     parser.add_argument("--layers")
     parser.add_argument("--encoding")
     parser.add_argument("--resolution", type=int)
